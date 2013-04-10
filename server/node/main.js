@@ -33,10 +33,18 @@ var dataStore = {
   notes: []
 };
 
-var net = require('net');
-var server = net.createServer({allowHalfOpen: true}, listener);
-server.listen(8124, "::");
-server.on('connection', function(conn) { log("connected", getRemoteIpAndPort(conn)); });
+//We want to start the Node toDoList server iff we are running in Node.
+if(typeof require !== "undefined") {
+  main();
+}
+
+function main () {
+  var net = require('net');
+  var server = net.createServer({allowHalfOpen: true}, listener);
+  server.listen(8124, "::");
+  server.listen(8124, "0.0.0.0");
+  server.on('connection', function(conn) { log("connected", getRemoteIpAndPort(conn)); });
+}
 
 function listener(conn) {
   conn.on('data', clientData.bind(this, conn));
@@ -120,9 +128,17 @@ function handleAdd(conn, incomingData) {
 
 function add(obj, datastoreObj) {
   if(typeof obj !== "undefined" && obj.length > 0) {
+    for(var j = 0; j<obj.length;++j) {
+      var newItem = obj[j];
+      if(newItem.id===undefined) {
+        throw Error("INVALID_ITEM_ADD at index "+
+          j+" of array "+JSON.stringify(obj));
+      }
+    }
     dataStore.revision++;
     for(var i = 0; i < obj.length; ++i) {
-      datastoreObj[obj[i].id] = obj[i];
+      var newItem = obj[i];
+      datastoreObj[newItem.id] = newItem;
     }
   }
 }
